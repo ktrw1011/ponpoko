@@ -1,4 +1,8 @@
-import MeCab
+try:
+    import MeCab
+except:
+    pass
+
 import nltk
 import re
 
