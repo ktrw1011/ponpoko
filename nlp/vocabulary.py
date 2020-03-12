@@ -9,11 +9,13 @@ class GensimVocab:
         self.special_tokens = special_tokens
         self.dict = Dictionary([self.special_tokens])
         self.word_freq = None
+        self.max_features = None
 
     def build(self, texts:list):
         self.dict.add_documents(texts)
         self.dict[0] #make id2token dict
         self.make_word_freq()
+        self.max_features = len(self.dict)
 
     def filter(self, no_below=5, no_above=1, keep_n=100000):
         self.dict.filter_extremes(
@@ -25,6 +27,7 @@ class GensimVocab:
 
         self.dict[0] #make id2token dict
         self.make_word_freq()
+        self.max_features = len(self.dict)
 
     def make_word_freq(self):
         self.dict[0] #make id2token dict
@@ -89,13 +92,26 @@ class SimpleVocab:
         return [self.token2id[token] for token in self.special_tokens]
 
     def build(self, texts:List[str], max_features: int=100000):
-        counter = Counter
+        self.token2id.update({token:_id for _id, token in enumerate(self.special_tokens)})
+
+        counter = Counter()
         for text in texts:
             counter.update(text.split())
 
-        # self.dict['token2id'] = {
-        #     token: _id+len(self.special_tokens) for _id, (token, count) in enumerate(counter.most_common(max_features))
-        #     }
+        self.token2id.update({
+            token: _id+len(self.special_tokens) for _id, (token, count) in enumerate(counter.most_common(max_features))
+        })
 
+        self.id2token = {v: k for k, v in self.token2id.items()}
+
+        self.word_freq = {
+            **{k:1 for k in self.special_tokens},
+            **dict(counter.most_common(max_features))
+        }
         
+        self.max_features = len(self.token2id)
 
+
+def convert_tokens2ids(tokens: List[str], token2id:Dict[str, int], unk_index=None, max_seq_len=200) -> List[int]:
+    ids = [token2id.get(token, unk_index) for token in tokens[:max_seq_len]]
+    return ids
