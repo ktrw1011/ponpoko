@@ -3,9 +3,10 @@ from collections import Counter, namedtuple
 
 from gensim.corpora import Dictionary
 
+SPECIAL_TOKENS = ["[PAD]", "[UNK]", "[CLS]"]
 
 class GensimVocab:
-    def __init__(self, special_tokens=["[CLS]", "[PAD]", "[UNK]"]):
+    def __init__(self, special_tokens=SPECIAL_TOKENS):
         self.special_tokens = special_tokens
         self.dict = Dictionary([self.special_tokens])
         self.word_freq = None
@@ -47,7 +48,7 @@ class GensimVocab:
 
 
 class SimpleVocab:
-    def __init__(self, special_tokens=["[CLS]", "[PAD]", "[UNK]"]):
+    def __init__(self, special_tokens=SPECIAL_TOKENS):
         self.token2id = {}
         self.id2token = {}
         self.word_freq = {}
