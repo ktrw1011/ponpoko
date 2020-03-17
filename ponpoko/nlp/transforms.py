@@ -78,15 +78,23 @@ class CleanNumbers:
 class SpacingPunctuation:
     def __init__(self):
         self.all_punct = list(set(list(string.punctuation)+ extra_punct))
-        self.all_punct.remove('-')
-        self.all_punct.remove('.')
+#         self.all_punct.remove('-')
+#         self.all_punct.remove('.')
 
     def __call__(self, text):
+        text = str(text)
         for punct in self.all_punct:
             if punct in text:
                 text = text.replace(punct, f' {punct} ')
         return text
-
+    
+class TextLower:
+    def __call__(self, text):
+        return text.lower()
+    
+class TextStrip:
+    def __call__(self, text):
+        return text.strip()
 
 class CleanRepeatWords:
 

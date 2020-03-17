@@ -18,8 +18,12 @@ from nltk.stem.lancaster import LancasterStemmer
 # logger.addHandler()
 
 
-def generate_w2v_feature(docs: List[List[str]]) -> Dict[str, np.ndarray]:
-    model = Word2Vec(docs, size=5, min_count=0, window=5)
+def train_w2v_embedding(docs: List[List[str]], window: int=5) -> Dict[str, np.ndarray]:
+    """
+    w2v
+    """
+
+    model = Word2Vec(docs, size=5, min_count=0, window=window)
 
     # vectorsプロパティはvocabのvalueのindex順に並んでいる
     vectors = model.wv.vectors
@@ -33,7 +37,8 @@ def w2v_finetune(
     all_texts: List[str],
     vocab,
     embedding_matrix: np.ndarray,
-    embed_size: int=300
+    embed_size: int=300,
+    return_model: False
     ) -> np.ndarray:
 
     """
@@ -69,22 +74,40 @@ def w2v_finetune(
         else:
             embedding_matrix[idx] = model.wv.get_vector(token)
 
-    return embedding_matrix, model
+    if return_model:
+        return embedding_matrix, model
+
+    return embedding_matrix
 
 class LoadEmbedding:
-    def __init__(self, embedding_path):
-        self.embeddings_index = gensim.models.KeyedVectors.load_word2vec_format(embedding_path, binary=True)
+    def __init__(self, embedding_path, binary=True):
+        
+        suffix = Path(embedding_path).suffix
+        
+        if suffix == ".vec":
+            self.embeddings_index = gensim.models.KeyedVectors.load_word2vec_format(embedding_path, binary=binary)
+            self._type = "w2v"
+        elif suffix == ".pkl":
+            self.embeddings_index = joblib.load(embedding_path)
+            self._type = "dict"
 
         self.ps = PorterStemmer()
         self.sb = SnowballStemmer('english')
         self.lc = LancasterStemmer()
 
     def _get_vector(self, word):
-        if self.embeddings_index.vocab.get(word):
-            return self.embeddings_index.get_vector(word)
-        else:
-            return None
-
+        if self._type == "w2v":
+            if self.embeddings_index.vocab.get(word):
+                return self.embeddings_index.get_vector(word)
+            else:
+                return None
+            
+        elif self._type == "dict":
+            if word in self.embeddings_index:
+                return self.embeddings_index[word]
+            else:
+                return None
+            
     def __call__(
         self,
         vocab,
