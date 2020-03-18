@@ -38,7 +38,7 @@ def w2v_finetune(
     vocab,
     embedding_matrix: np.ndarray,
     embed_size: int=300,
-    return_model: False
+    return_model: bool=False
     ) -> np.ndarray:
 
     """
