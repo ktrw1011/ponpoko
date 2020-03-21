@@ -35,21 +35,23 @@ class BaseLearner:
 
         self.t_total = len(self.train_loader) // self.cfg.gradient_accumulation_steps * self.cfg.epochs
         
-        if scheduler:
-            self.scheduler = scheduler(self.optimizer, num_warmup_steps=0.1, num_training_steps=self.t_total)
-        else:
-            self.scheduler = None
+        # if scheduler:
+        #     self.scheduler = scheduler(self.optimizer, num_warmup_steps=0.1, num_training_steps=self.t_total)
+        # else:
+        self.scheduler = None
         
         self.global_meter = AverageMeter()
                 
         self.trn_fold_scores = []
         self.val_fold_scores = []
 
+    def setting_info(self):
+        self.debug("Num Examples: {}".format(len(self.train_loader.dataset)))
+        self.debug("Gradient Accumulation Step: {}".format(self.cfg.gradient_accumulation_steps))
+        self.debug("Total Optimization Steps: {}".format(self.t_total))
+        
     def train(self):
-        self.debug("===Running training===")
-        self.info("Num Examples: {}".format(len(self.train_loader)))
-        self.info("Gradient Accumulation Step: {}".format(self.cfg.gradient_accumulation_steps))
-        self.info("Total Optimization Steps: {}".format(self.t_total))
+        self.setting_info()
 
         self.model.to(self.cfg.device)
 
@@ -73,6 +75,8 @@ class BaseLearner:
             
             self.trn_fold_scores.append(FoldScore(self.fold, epoch+1, self.get_optimizer_lr(), trn_loss, trn_metric))
             self.val_fold_scores.append(FoldScore(self.fold, epoch+1, self.get_optimizer_lr(), val_loss, val_metric))
+
+            self.on_epoch_end()
 
     def validate(self, epoch):
         self.info('epoch {}: \t Start validation...'.format(epoch+1))
@@ -140,6 +144,8 @@ class BaseLearner:
 
             if self.scheduler is not None:
                 self.scheduler.step()
+
+            self.on_batch_end()
             
         return preds, loss.item()
 
@@ -182,13 +188,16 @@ class BaseLearner:
         return self.optimizer.param_groups[0]['lr']
 
     def on_epoch_end(self):
-        raise NotImplementedError
+        pass
 
-    def on_training_end(self):
-        raise NotImplementedError
+    def on_batch_end(self):
+        pass
 
     def inputs_to_device(self, inputs, targets):
         return inputs, targets
+
+    def set_scheduler(self, scheduler, params):
+        self.scheduler = scheduler(**params)
 
     def logging_loss(self):
         pass
