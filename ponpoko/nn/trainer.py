@@ -76,6 +76,9 @@ class BaseLearner:
             self.trn_fold_scores.append(FoldScore(self.fold, epoch+1, self.get_optimizer_lr(), trn_loss, trn_metric))
             self.val_fold_scores.append(FoldScore(self.fold, epoch+1, self.get_optimizer_lr(), val_loss, val_metric))
 
+            if not self.cfg.batch_step_scheduler and self.scheduler is not None:
+                self.scheduler.step()
+
             self.on_epoch_end()
 
     def validate(self, epoch):
@@ -137,15 +140,13 @@ class BaseLearner:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.max_grad_norm)
 
             # 勾配累積のステップ時にoptimizerをupdate
-            # このタイミングでglobal_meterもupdate?
             self.optimizer.step()
             self.optimizer.zero_grad()
-            self.global_meter.step += 1
 
-            if self.scheduler is not None:
-                self.scheduler.step()
+        if self.cfg.batch_step_scheduler and self.scheduler is not None:
+            self.scheduler.step()
 
-            self.on_batch_end()
+        self.on_batch_end()
             
         return preds, loss.item()
 
@@ -195,9 +196,6 @@ class BaseLearner:
 
     def inputs_to_device(self, inputs, targets):
         return inputs, targets
-
-    def set_scheduler(self, scheduler, params):
-        self.scheduler = scheduler(**params)
 
     def logging_loss(self):
         pass
