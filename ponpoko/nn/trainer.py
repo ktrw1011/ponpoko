@@ -1,4 +1,5 @@
 from typing import Tuple, List
+import dataclasses
 from tqdm.autonotebook import tqdm, trange
 import numpy as np
 
@@ -7,6 +8,19 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from .utils import AverageMeter, FoldScore, to_numpy, to_numpy
+
+
+@dataclasses.dataclass
+class BaseLearnerConfig:
+    device: str
+    fp16: bool=False
+    logging_steps: int
+
+    epochs: int
+    gradient_accumulation_steps: int
+    batch_step_scheduler: bool
+    max_grad_norm:float
+
 
 class BaseLearner:
     def __init__(
@@ -35,9 +49,6 @@ class BaseLearner:
 
         self.t_total = len(self.train_loader) // self.cfg.gradient_accumulation_steps * self.cfg.epochs
         
-        # if scheduler:
-        #     self.scheduler = scheduler(self.optimizer, num_warmup_steps=0.1, num_training_steps=self.t_total)
-        # else:
         self.scheduler = None
         
         self.global_meter = AverageMeter()
@@ -130,7 +141,7 @@ class BaseLearner:
         else:
             loss.backward()
 
-        self.global_meter.update(loss.item())
+        self.global_meter.total_val += loss.item()
 
         if (batch_idx + 1) % self.cfg.gradient_accumulation_steps == 0:
             if self.cfg.max_grad_norm > 0:
@@ -142,9 +153,10 @@ class BaseLearner:
             # 勾配累積のステップ時にoptimizerをupdate
             self.optimizer.step()
             self.optimizer.zero_grad()
+            self.global_meter.step += 1
 
-        if self.cfg.batch_step_scheduler and self.scheduler is not None:
-            self.scheduler.step()
+            if self.cfg.batch_step_scheduler and self.scheduler is not None:
+                self.scheduler.step()
 
         self.on_batch_end()
             
