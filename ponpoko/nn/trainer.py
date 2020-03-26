@@ -78,9 +78,11 @@ class BaseLearner:
 
     @property
     def setting_info(self):
+        self.debug(f"Name: {self.model_name}")
         self.debug("Num Examples: {}".format(len(self.train_loader.dataset)))
         self.debug("Gradient Accumulation Step: {}".format(self.cfg.gradient_accumulation_steps))
         self.debug("Total Optimization Steps: {}".format(self.t_total))
+        self.debug(f"Check Point: {self.checkpoint_dir}")
         
     def train(self):
         self.setting_info
@@ -121,7 +123,7 @@ class BaseLearner:
         
         val_loss, val_metrics = self.valid_epoch()
 
-        self.monitor_score(epoch, val_score)
+        self.monitor_score(epoch, val_metrics)
 
         self.on_valid_end()
 
