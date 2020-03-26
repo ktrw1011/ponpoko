@@ -121,6 +121,8 @@ class BaseLearner:
         
         val_loss, val_metrics = self.valid_epoch()
 
+        self.monitor_score(epoch, val_score)
+
         self.on_valid_end()
 
         return val_loss, val_metrics
