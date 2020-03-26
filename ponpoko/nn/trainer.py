@@ -13,7 +13,7 @@ from .utils import AverageMeter, FoldScore, to_numpy, to_numpy
 @dataclasses.dataclass
 class BaseLearnerConfig:
     device: str
-    fp16: bool=False
+    fp16: bool
     logging_steps: int
 
     epochs: int
