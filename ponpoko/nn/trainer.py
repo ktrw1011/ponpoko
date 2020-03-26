@@ -1,5 +1,8 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 import dataclasses
+import pathlib
+from pathlib import Path
+
 from tqdm.autonotebook import tqdm, trange
 import numpy as np
 
@@ -16,10 +19,12 @@ class BaseLearnerConfig:
     fp16: bool
     logging_steps: int
 
+    minimize_score: bool
     epochs: int
+    batch_size: int
     gradient_accumulation_steps: int
     batch_step_scheduler: bool
-    max_grad_norm:float
+    max_grad_norm: Optional[float]
 
 
 class BaseLearner:
@@ -35,6 +40,8 @@ class BaseLearner:
         fold: int=1,
         scheduler=None,
         logger=None,
+        model_name: Optional[str]=None,
+        checkpoint_dir: Optional[pathlib.Path]=None,
         ):
 
         self.cfg = cfg
@@ -56,13 +63,27 @@ class BaseLearner:
         self.trn_fold_scores = []
         self.val_fold_scores = []
 
+        if model_name is None:
+            self.model_name = "model"
+
+        self.model_name = f"{self.model_name}_fold{str(self.fold)}"
+
+        self.checkpoint_dir = checkpoint_dir
+
+        self.best_epoch, self.best_score = -1, 1e6 if self.cfg.minimize_score else -1e6
+        
+    @property
+    def best_checkpoint_file(self):
+        return self.checkpoint_dir / Path(f'{self.model_name}_best.pth')
+
+    @property
     def setting_info(self):
         self.debug("Num Examples: {}".format(len(self.train_loader.dataset)))
         self.debug("Gradient Accumulation Step: {}".format(self.cfg.gradient_accumulation_steps))
         self.debug("Total Optimization Steps: {}".format(self.t_total))
         
     def train(self):
-        self.setting_info()
+        self.setting_info
 
         self.model.to(self.cfg.device)
 
@@ -99,6 +120,8 @@ class BaseLearner:
         self.model.eval()
         
         val_loss, val_metrics = self.valid_epoch()
+
+        self.on_valid_end()
 
         return val_loss, val_metrics
 
@@ -144,7 +167,7 @@ class BaseLearner:
         self.global_meter.total_val += loss.item()
 
         if (batch_idx + 1) % self.cfg.gradient_accumulation_steps == 0:
-            if self.cfg.max_grad_norm > 0:
+            if self.cfg.max_grad_norm and self.cfg.max_grad_norm > 0:
                 if self.cfg.fp16:
                     torch.nn.utils.clip_grad_norm_(amp.master_params(self.optimizer), self.cfg.max_grad_norm)
                 else:
@@ -206,11 +229,31 @@ class BaseLearner:
     def on_batch_end(self):
         pass
 
+    def on_valid_end(self):
+        pass
+
     def inputs_to_device(self, inputs, targets):
         return inputs, targets
 
     def logging_loss(self):
         pass
+
+    def monitor_score(self, epoch, val_score):
+        if ((self.cfg.minimize_score and (val_score < self.best_score)) or
+            ((self.cfg.minimize_score) and (val_score > self.best_score))):
+
+            # update best score
+            self.best_score, self.best_epoch = val_score, epoch
+            
+            self.save_model(self.best_checkpoint_file)
+
+            self.info('best model: epoch {} - {:.5}'.format(epoch, val_score))
+
+        else:
+            self.info(f'model not improved for {epoch-self.best_epoch} epochs')
+
+    def save_model(self, checkpoint_file):
+        torch.save({'model_state_dict': self.model.state_dict()}, checkpoint_file)
 
     def info(self, s):
         if self.logger is not None: self.logger.info(s)
