@@ -83,6 +83,7 @@ class BaseLearner:
         self.debug("Gradient Accumulation Step: {}".format(self.cfg.gradient_accumulation_steps))
         self.debug("Total Optimization Steps: {}".format(self.t_total))
         self.debug(f"Check Point: {self.checkpoint_dir}")
+        self.debug(f"Score Minimize: {self.cfg.minimize_score}")
         
     def train(self):
         self.setting_info
@@ -244,7 +245,7 @@ class BaseLearner:
 
     def monitor_score(self, epoch, val_score):
         if ((self.cfg.minimize_score and (val_score < self.best_score)) or
-            ((self.cfg.minimize_score) and (val_score > self.best_score))):
+            ((not self.cfg.minimize_score) and (val_score > self.best_score))):
 
             # update best score
             self.best_score, self.best_epoch = val_score, epoch
