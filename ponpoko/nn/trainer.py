@@ -76,17 +76,23 @@ class BaseLearner:
     def best_checkpoint_file(self):
         return self.checkpoint_dir / Path(f'{self.model_name}_best.pth')
 
-    @property
-    def setting_info(self):
-        self.debug(f"Name: {self.model_name}")
-        self.debug("Num Examples: {}".format(len(self.train_loader.dataset)))
-        self.debug("Gradient Accumulation Step: {}".format(self.cfg.gradient_accumulation_steps))
-        self.debug("Total Optimization Steps: {}".format(self.t_total))
-        self.debug(f"Check Point: {self.checkpoint_dir}")
-        self.debug(f"Score Minimize: {self.cfg.minimize_score}")
+    def setting_info(self, logging=False):
+        name = f"Name: {self.model_name}"
+        num_examples = f"Num Examples: {len(self.train_loader.dataset)}"
+        accum_step = f"Gradient Accumulation Step: {self.cfg.gradient_accumulation_steps}"
+        optim_step = f"Total Optimization Steps: {self.t_total}"
+        checkpoint = f"Check Point: {self.checkpoint_dir}"
+        minimize = f"Score Minimize: {self.cfg.minimize_score}"
+
+        print(name) if logging else self.info(name)
+        print(num_examples) if logging else self.info(num_examples)
+        print(accum_step) if logging else self.info(accum_step)
+        print(optim_step) if logging else self.info(optim_step)
+        print(checkpoint) if logging else self.info(checkpoint)
+        print(minimize) if logging else self.info(minimize)
         
     def train(self):
-        self.setting_info
+        self.setting_info(logging=True)
 
         self.model.to(self.cfg.device)
 
@@ -124,7 +130,7 @@ class BaseLearner:
         
         val_loss, val_metrics = self.valid_epoch()
 
-        self.monitor_score(epoch, val_metrics)
+        self.monitor_score(epoch+1, val_metrics)
 
         self.on_valid_end()
 
@@ -250,10 +256,8 @@ class BaseLearner:
             # update best score
             self.best_score, self.best_epoch = val_score, epoch
             
+            self.info('best model saved: epoch {} - {:.5}'.format(epoch, val_score))
             self.save_model(self.best_checkpoint_file)
-
-            self.info('best model: epoch {} - {:.5}'.format(epoch, val_score))
-
         else:
             self.info(f'model not improved for {epoch-self.best_epoch} epochs')
 
