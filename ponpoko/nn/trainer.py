@@ -15,15 +15,20 @@ from .utils import AverageMeter, FoldScore, to_numpy, to_numpy
 
 @dataclasses.dataclass
 class BaseLearnerConfig:
+    seed: int
     device: str
+    n_gpu: int
     fp16: bool
     logging_steps: int
+
+    lr: float
+    weight_decay: Optional[float]
+    batch_step_scheduler: bool
 
     minimize_score: bool
     epochs: int
     batch_size: int
     gradient_accumulation_steps: int
-    batch_step_scheduler: bool
     max_grad_norm: Optional[float]
 
 

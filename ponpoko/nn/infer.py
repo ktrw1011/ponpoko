@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from .utils import AverageMeter, FoldScore, to_numpy, to_numpy
 
 
-class Baseinfer:
+class BaseInfer:
     def __init__(
         self,
         model: nn.Module,
@@ -27,6 +27,8 @@ class Baseinfer:
     def infer(self):
         self.info('Start inference...')
 
+        self.model.to('cuda' if torch.cuda.is_available() else 'cpu')
+
         self.preds = []
         batch_iterator = tqdm(self.test_loader, desc="Iteration")
 
@@ -38,6 +40,8 @@ class Baseinfer:
                 preds = self.infer_batch(inputs)
 
                 self.preds.append(to_numpy(preds))
+
+        self.preds = np.concatenate(self.preds)
 
         self.on_infer_end(self.preds)
 
