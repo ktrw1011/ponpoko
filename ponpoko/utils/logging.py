@@ -31,7 +31,7 @@ class BaseLogger(object):
             
         #実験フォルダがない場合はディレクトリを作成する
         if not self.log_dir.exists():
-            self.log_dir.mkdir()
+            self.log_dir.mkdir(parents=True)
         
         if exp_ver is None:
             self.exp_ver = self.time
