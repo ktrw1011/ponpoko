@@ -15,7 +15,7 @@ def set_seed(seed=42, num_gpu=0):
 
 
 def gpu_info():
-    gpu_info = subprocess.check_output('!nvidia-smi')
+    gpu_info = subprocess.check_output('nvidia-smi')
     gpu_info = '\n'.join(gpu_info)
     if gpu_info.find('failed') >= 0:
         print('Select the Runtime → "Change runtime type" menu to enable a GPU accelerator, ')
