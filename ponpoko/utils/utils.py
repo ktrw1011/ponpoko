@@ -13,6 +13,8 @@ def set_seed(seed=42, num_gpu=0):
     if num_gpu > 0:
         torch.cuda.manual_seed_all(seed)
 
+def dataframe_cv(df):
+    pass
 
 def gpu_info():
     gpu_info = subprocess.check_output('nvidia-smi')

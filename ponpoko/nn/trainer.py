@@ -63,8 +63,9 @@ class BaseLearner:
         
         self.scheduler = None
         
+        # scores
         self.global_meter = AverageMeter()
-                
+
         self.trn_fold_scores = []
         self.val_fold_scores = []
 
@@ -114,7 +115,6 @@ class BaseLearner:
 
             self.info('train loss:{:.4f}\ttrain score:{:.4f}'.format(trn_loss, trn_metric))
 
-            # valの予測が欲しい場合はそれをリターンするのでここに戻した方がいいと思われる
             val_loss, val_metric = self.validate(epoch)
 
             self.info('val loss:{:.4f}\tval score:{:.4f}'.format(val_loss, val_metric))
@@ -130,6 +130,8 @@ class BaseLearner:
     def validate(self, epoch):
         self.info('epoch {}: \t Start validation...'.format(epoch+1))
 
+        # 最終epochの予測は取得できる
+        # あるepochでの重みでの予測が欲しいなら、面倒だがInferを呼び出すのがいいと思う
         self.valid_preds, self.valid_targets = [], []
         self.model.eval()
         
@@ -226,7 +228,10 @@ class BaseLearner:
 
                 batch_iterator.set_postfix(loss='{:.4f}'.format(val_meter()))
 
-        metric_score = self.metric_fn(np.concatenate(self.valid_preds), np.concatenate(self.valid_targets))
+        self.valid_preds = np.concatenate(self.valid_preds)
+        self.valid_targets = np.concatenate(self.valid_targets)
+
+        metric_score = self.metric_fn(self.valid_preds, self.valid_targets)
 
         return val_meter(), metric_score
 

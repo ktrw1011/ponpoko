@@ -4,6 +4,8 @@ import datetime
 import logging
 from logging import getLogger, FileHandler, StreamHandler, Formatter
 
+from pprint import pprint
+
 class BaseLogger(object):
     def __init__(self, log_dir=None, exp_ver=None):
         '''
@@ -45,7 +47,7 @@ class BaseLogger(object):
     @property
     def dump_path(self):
         return self.exp_dir
-        
+
     def create_logger(self, logname="exp", sh=True, fh=True):
         '''
         loogerの作成
