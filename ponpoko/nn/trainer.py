@@ -45,6 +45,7 @@ class BaseLearner:
         fold: int=1,
         scheduler=None,
         logger=None,
+        tqdm_disable: bool=False,
         model_name: Optional[str]=None,
         checkpoint_dir: Optional[pathlib.Path]=None,
         ):
@@ -58,6 +59,7 @@ class BaseLearner:
         self.loss_fn = loss_fn
         self.metric_fn = metric_fn
         self.logger = logger
+        self.tqdm_disable = tqdm_disable
 
         self.t_total = len(self.train_loader) // self.cfg.gradient_accumulation_steps * self.cfg.epochs
         
@@ -104,7 +106,7 @@ class BaseLearner:
 
         self.model.train()
         self.model.zero_grad()
-        epoch_iterator = trange(self.cfg.epochs, desc="Epoch")
+        epoch_iterator = trange(self.cfg.epochs, desc="Epoch", disable=self.tqdm_disable)
 
         for epoch in epoch_iterator:
             self.info('epoch {}: \t Start training...'.format(epoch+1))
@@ -144,7 +146,7 @@ class BaseLearner:
         return val_loss, val_metrics
 
     def train_epoch(self, epoch) -> Tuple[float, float]:
-        batch_iterator = tqdm(self.train_loader, desc="Iteration")
+        batch_iterator = tqdm(self.train_loader, desc="Iteration", disable=self.tqdm_disable)
 
         trn_meter = AverageMeter()
         
@@ -210,7 +212,7 @@ class BaseLearner:
         return preds, loss
 
     def valid_epoch(self):
-        batch_iterator = tqdm(self.valid_loader, desc="Iteration")
+        batch_iterator = tqdm(self.valid_loader, desc="Iteration", disable=self.tqdm_disable)
 
         val_meter = AverageMeter()
 
