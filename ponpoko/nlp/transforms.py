@@ -49,6 +49,10 @@ class Compose:
 
         return names
 
+class NoneTrans:
+    def __call__(self, text):
+        return text
+
 class RemoveHtmlTag:
     def __init__(self):
         self.tag_pattern = re.compile(r'<(".*?"|\'.*?\'|[^\'"])*?>')
