@@ -100,6 +100,11 @@ class TextStrip:
     def __call__(self, text):
         return text.strip()
 
+class RemoveEmptyString:
+    def __call__(self, text):
+        l = [s for s in text.split(' ') if s != '']
+        return ' '.join(l)
+
 class CleanRepeatWords:
 
     def __call__(self, text):
