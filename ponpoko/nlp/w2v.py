@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import warnings
 from pathlib import Path
 import numpy as np
@@ -79,17 +79,19 @@ def w2v_finetune(
 
     return embedding_matrix
 
-class LoadEmbedding:
-    def __init__(self, embedding_path, binary=True):
+class W2VEmbedding:
+    def __init__(self, embedding_path: Optional[str], binary: bool=True):
         
-        suffix = Path(embedding_path).suffix
-        
-        if suffix == ".vec":
-            self.embeddings_index = gensim.models.KeyedVectors.load_word2vec_format(embedding_path, binary=binary)
-            self._type = "w2v"
-        elif suffix == ".pkl":
-            self.embeddings_index = joblib.load(embedding_path)
-            self._type = "dict"
+        self.__embeddings_index = None
+        self._type = "w2v"
+
+        if embedding_path is not None:
+            suffix = Path(embedding_path).suffix
+            if suffix == ".vec":
+                self.__embeddings_index = gensim.models.KeyedVectors.load_word2vec_format(embedding_path, binary=binary)
+            elif suffix == ".pkl":
+                self.__embeddings_index = joblib.load(embedding_path)
+                self._type = "dict"
 
         self.ps = PorterStemmer()
         self.sb = SnowballStemmer('english')
@@ -97,16 +99,24 @@ class LoadEmbedding:
 
     def _get_vector(self, word):
         if self._type == "w2v":
-            if self.embeddings_index.vocab.get(word):
-                return self.embeddings_index.get_vector(word)
+            if self.__embeddings_index.vocab.get(word):
+                return self.__embeddings_index.get_vector(word)
             else:
                 return None
             
         elif self._type == "dict":
-            if word in self.embeddings_index:
-                return self.embeddings_index[word]
+            if word in self.__embeddings_index:
+                return self.__embeddings_index[word]
             else:
                 return None
+
+    @property
+    def embedding_matrix(self):
+        return self.__embeddings_index
+
+    @embedding_matrix.setter
+    def embedding_matrix(self, value):
+        self.__embeddings_index = value
             
     def __call__(
         self,
