@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 from collections import Counter, namedtuple
 
 from gensim.corpora import Dictionary
@@ -92,12 +92,17 @@ class SimpleVocab:
     def get_special_token_index(self):
         return [self.token2id[token] for token in self.special_tokens]
 
-    def build(self, texts:List[str], max_features: int=100000):
+    def build(self, texts:Union[List[str], List[List[str]]], max_features: int=100000):
+        # add special tokens
         self.token2id.update({token:_id for _id, token in enumerate(self.special_tokens)})
 
         counter = Counter()
-        for text in texts:
-            counter.update(text.split())
+        if isinstance(texts[0], str):
+            for text in texts:
+                counter.update(text.split())
+        else:
+            for text in texts:
+                counter.update(text)
 
         self.token2id.update({
             token: _id+len(self.special_tokens) for _id, (token, count) in enumerate(counter.most_common(max_features))
