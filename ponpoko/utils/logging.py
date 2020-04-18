@@ -1,3 +1,4 @@
+from typing import Union
 import os
 from pathlib import Path
 import datetime
@@ -5,6 +6,9 @@ import logging
 from logging import getLogger, FileHandler, StreamHandler, Formatter
 
 from pprint import pprint
+
+from IPython.utils.io import Tee
+import contextlib
 
 class BaseLogger(object):
     def __init__(self, log_dir=None, exp_ver=None):
@@ -52,11 +56,12 @@ class BaseLogger(object):
         '''
         loogerの作成
         '''
-        #log_fileのfullpath
-        self.logfile_path = Path(self.log_dir / self.exp_ver / logname)
-
+        # TODO
+        # ここでlog_fileのパスを持たせる必要ってある？
+        # log_fileのfullpath
+        logfile_dir = Path(self.log_dir / self.exp_ver / logname)
         #ログファイル名
-        log_file = Path('{}.log'.format(self.logfile_path)).resolve()
+        self.logfile_path = Path('{}.log'.format(logfile_dir)).resolve()
 
         logger_ = getLogger(logname)
         logger_.setLevel(logging.DEBUG)
@@ -64,7 +69,7 @@ class BaseLogger(object):
         log_formatter = Formatter("[%(levelname)s] %(asctime)s >>\t%(message)s")
 
         if fh:
-            file_handler = FileHandler(log_file)
+            file_handler = FileHandler(self.logfile_path)
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(log_formatter)
             logger_.addHandler(file_handler)
@@ -76,3 +81,11 @@ class BaseLogger(object):
             logger_.addHandler(stream_handler)
             
         return logger_
+
+@contextlib.contextmanager
+def print_redirect(log_path:Union[Path, str], mode="a"):
+    try:
+        tee = Tee(log_path, mode=mode, channel="stdout")
+        yield tee
+    finally:
+        tee.close()
