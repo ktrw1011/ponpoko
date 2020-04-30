@@ -97,8 +97,18 @@ class TextLower:
         return text.lower()
     
 class TextStrip:
+    def __init__(self, how:str):
+        if not how in ["left" ,"right", "both"]:
+            raise ValueError("how is selected in left, right, both")
+
+        self.how = how
     def __call__(self, text):
-        return text.strip()
+        if self.how == "left":
+            return text.lstrip()
+        elif self.how == "right":
+            return text.rstrip()
+        else:
+            return text.strip()
 
 class RemoveEmptyString:
     def __call__(self, text):
