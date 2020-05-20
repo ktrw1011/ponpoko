@@ -20,15 +20,6 @@ misspell_dict = {"aren't": "are not", "can't": "can not", "couldn't": "could not
                  "you'll": "you will", "you're": "you are", "you've": "you have",
                  "'re": " are", "wasn't": "was not", "we'll": " will", "tryin'": "trying"}
 
-extra_punct = [',', '.', '"', ':', ')', '(', '-', '!', '?', '|', ';', "'", '$', '&', '/', '[', ']',
-          '>', '%', '=', '#', '*', '+', '\\', '•', '~', '@', '£', '·', '_', '{', '}', '©', '^',
-          '®', '`', '<', '→', '°', '€', '™', '›', '♥', '←', '×', '§', '″', '′', 'Â', '█',
-          '½', 'à', '…', '“', '★', '”', '–', '●', 'â', '►', '−', '¢', '²', '¬', '░', '¶',
-          '↑', '±', '¿', '▾', '═', '¦', '║', '―', '¥', '▓', '—', '‹', '─', '▒', '：', '¼',
-          '⊕', '▼', '▪', '†', '■', '’', '▀', '¨', '▄', '♫', '☆', 'é', '¯', '♦', '¤', '▲',
-          'è', '¸', '¾', 'Ã', '⋅', '‘', '∞', '∙', '）', '↓', '、', '│', '（', '»', '，', '♪',
-          '╩', '╚', '³', '・', '╦', '╣', '╔', '╗', '▬', '❤', 'ï', 'Ø', '¹', '≤', '‡', '√']
-
 class Compose:
     """
     各transfomerモジュールのインスタンスをリストで渡せばその順番でテキストの正規化を行う
@@ -81,16 +72,14 @@ class CleanNumbers:
 
 class SpacingPunctuation:
     def __init__(self):
-        self.all_punct = list(set(list(string.punctuation)+ extra_punct))
-#         self.all_punct.remove('-')
-#         self.all_punct.remove('.')
+        self.all_punct = list(string.punctuation)
 
     def __call__(self, text):
         text = str(text)
         for punct in self.all_punct:
             if punct in text:
                 text = text.replace(punct, f' {punct} ')
-        return text
+        return text.strip()
     
 class TextLower:
     def __call__(self, text):
