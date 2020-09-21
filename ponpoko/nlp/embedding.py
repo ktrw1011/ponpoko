@@ -40,6 +40,7 @@ def finetune_w2v(
     embedding_matrix: np.ndarray,
     epoch:int = 3,
     embed_size: int=300,
+    num_workers: int=1,
     return_model: bool=False,
     ) -> np.ndarray:
 
@@ -47,7 +48,7 @@ def finetune_w2v(
     token2id = vocab.token2id
     special_tokens = vocab.special_tokens
 
-    model = gensim.models.Word2Vec(min_count=1, workers=1, iter=epoch, size=embed_size)
+    model = gensim.models.Word2Vec(min_count=1, workers=num_workers, iter=epoch, size=embed_size)
 
     # vocabを構築
     model.build_vocab_from_freq(word_freq)
