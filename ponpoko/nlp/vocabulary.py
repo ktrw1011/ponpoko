@@ -1,18 +1,23 @@
 from typing import Dict, List, Tuple, Union
 from collections import Counter, namedtuple
 
+import pandas as pd
+
 from gensim.corpora import Dictionary
 
 SPECIAL_TOKENS = ["[PAD]", "[UNK]", "[CLS]"]
 
-class GensimVocab:
+class BaseVocab:
+    pass
+
+class GensimVocab(BaseVocab):
     def __init__(self, special_tokens=SPECIAL_TOKENS):
         self.special_tokens = special_tokens
         self.dict = Dictionary([self.special_tokens])
         self.word_freq = None
         self.max_features = None
 
-    def build(self, texts:list):
+    def build(self, texts:Union[pd.Series, list]):
         self.dict.add_documents(texts)
         self.dict[0] #make id2token dict
         self.make_word_freq()
@@ -47,7 +52,7 @@ class GensimVocab:
         return [self.token2id[token] for token in self.special_tokens]
 
 
-class SimpleVocab:
+class SimpleVocab(BaseVocab):
     def __init__(self, special_tokens=SPECIAL_TOKENS):
         self.token2id = {}
         self.id2token = {}

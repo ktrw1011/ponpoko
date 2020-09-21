@@ -1,5 +1,7 @@
 import re
 import string
+from typing import List
+from abc import ABCMeta, abstractclassmethod
 
 misspell_dict = {"aren't": "are not", "can't": "can not", "couldn't": "could not",
                  "didn't": "did not", "doesn't": "does not", "don't": "do not",
@@ -20,11 +22,16 @@ misspell_dict = {"aren't": "are not", "can't": "can not", "couldn't": "could not
                  "you'll": "you will", "you're": "you are", "you've": "you have",
                  "'re": " are", "wasn't": "was not", "we'll": " will", "tryin'": "trying"}
 
+class BaseTransformer:
+    
+    def __call__(self, text:str) -> str:
+        pass
+
 class Compose:
     """
     各transfomerモジュールのインスタンスをリストで渡せばその順番でテキストの正規化を行う
     """
-    def __init__(self, transforms):
+    def __init__(self, transforms: List[BaseTransformer]):
         self.transforms = transforms
 
     def __call__(self, text):
@@ -40,19 +47,26 @@ class Compose:
 
         return names
 
-class NoneTrans:
-    def __call__(self, text):
+class NoneTrans(BaseTransformer):
+    def __call__(self, text: str) -> str:
         return text
 
-class RemoveHtmlTag:
+class ReplaceWord(BaseTransformer):
+    def __init__(self, trantable: str.maketrans):
+        self.transtable = transtable
+        
+    def __call__(self, text: str) -> str:
+        return text.translate(self.transtable)
+
+class RemoveHtmlTag(BaseTransformer):
     def __init__(self):
         self.tag_pattern = re.compile(r'<(".*?"|\'.*?\'|[^\'"])*?>')
 
-    def __call__(self, text):
+    def __call__(self, text:str) -> str:
         text = re.sub(self.tag_pattern, "", text)
         return text
 
-class ReplaceTypicalMissSpelling:
+class ReplaceTypicalMissSpelling(BaseTransformer):
     def __init__(self):
         self.pattern = re.compile('(%s)' % '|'.join(misspell_dict.keys()))
         
@@ -62,36 +76,36 @@ class ReplaceTypicalMissSpelling:
     def __call__(self, text:str) -> str:
         return self.pattern.sub(self._replace, text)
 
-class CleanNumbers:
-    def __init__(self):
+class ReplaceContinuousNumbers(BaseTransformer):
+    def __init__(self, to_word: str='0'):
         self.pattern = re.compile(r'\d+')
-
+        self.to_word = to_word
+        
     def __call__(self, text: str) -> str:
-        return re.sub(self.pattern, ' ', text)
+        return re.sub(self.pattern, self.to_word, text)
 
-
-class SpacingPunctuation:
+class SpacingPunctuation(BaseTransformer):
     def __init__(self):
         self.all_punct = list(string.punctuation)
 
-    def __call__(self, text):
+    def __call__(self, text:str) -> str:
         text = str(text)
         for punct in self.all_punct:
             if punct in text:
                 text = text.replace(punct, f' {punct} ')
         return text.strip()
     
-class TextLower:
-    def __call__(self, text):
+class TextLower(BaseTransformer):
+    def __call__(self, text:str) -> str:
         return text.lower()
     
-class TextStrip:
-    def __init__(self, how:str):
+class TextStrip(BaseTransformer):
+    def __init__(self, how:str="both"):
         if not how in ["left" ,"right", "both"]:
             raise ValueError("how is selected in left, right, both")
 
         self.how = how
-    def __call__(self, text):
+    def __call__(self, text: str) -> str:
         if self.how == "left":
             return text.lstrip()
         elif self.how == "right":
@@ -99,14 +113,14 @@ class TextStrip:
         else:
             return text.strip()
 
-class RemoveEmptyString:
-    def __call__(self, text):
+class RemoveEmptyString(BaseTransformer):
+    def __call__(self, text: str) -> str:
         l = [s for s in text.split(' ') if s != '']
         return ' '.join(l)
 
-class CleanRepeatWords:
+class CleanRepeatWords(BaseTransformer):
 
-    def __call__(self, text):
+    def __call__(self, text: str) -> str:
         text = re.sub(r"(I|i)(I|i)+ng", "ing", text)
         text = re.sub(r"(L|l)(L|l)(L|l)+y", "lly", text)
         text = re.sub(r"(A|a)(A|a)(A|a)+", "a", text)
