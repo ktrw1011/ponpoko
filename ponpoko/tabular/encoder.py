@@ -13,24 +13,7 @@ from sklearn.utils.multiclass import type_of_target
 import category_encoders as ce
 from category_encoders.utils import convert_input, convert_input_vector
 
-def check_cv(
-    cv: Union[int, Iterable, BaseCrossValidator]=5,
-    y: Optional[Union[pd.Series, np.ndarray]]=None,
-    stratified: bool=False,
-    random_state: int=0,
-    ):
-
-    if cv is None:
-        cv = 5
-    if isinstance(cv, numbers.Integral):
-        if stratified and (y is not None) and (type_of_target(y) is ('binary', 'multiclass')):
-            return StratifiedKFold(cv, shuffle=True, random_state=random_state)
-        else:
-            # 連続値とかならこっち
-            return KFold(cv, shuffle=True, random_state=random_state)
-
-    return model_selection.check_cv(cv, y, stratified)
-
+from .validation import check_cv
 
 class TargetEncoder(BaseEstimator, TransformerMixin):
     def __init__(
@@ -94,7 +77,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
         return X_ if self.return_same_type and is_pandas else X_.values
 
     def _pre_train(self, y):
-        #cs確認
+        #cv確認
         self.cv = check_cv(self.cv, y)
         self.n_splits = self.cv.get_n_splits()
         
