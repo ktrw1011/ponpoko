@@ -1,7 +1,6 @@
 import re
 import string
 from typing import List
-from abc import ABCMeta, abstractclassmethod
 
 misspell_dict = {"aren't": "are not", "can't": "can not", "couldn't": "could not",
                  "didn't": "did not", "doesn't": "does not", "don't": "do not",
@@ -52,7 +51,7 @@ class NoneTrans(BaseTransformer):
         return text
 
 class ReplaceWord(BaseTransformer):
-    def __init__(self, trantable: str.maketrans):
+    def __init__(self, transtable: str.maketrans):
         self.transtable = transtable
         
     def __call__(self, text: str) -> str:
@@ -117,6 +116,15 @@ class RemoveEmptyString(BaseTransformer):
     def __call__(self, text: str) -> str:
         l = [s for s in text.split(' ') if s != '']
         return ' '.join(l)
+
+class CleanNumber(BaseTransformer):
+    """連続する数値を置き換える"""
+    def __init__(self, to_word:str=" "):
+        self.pattern = re.compile(r'\d+')
+        self.to_word = to_word
+        
+    def __call__(self, text: str) -> str:
+        return re.sub(self.pattern, self.to_word, text)
 
 class CleanRepeatWords(BaseTransformer):
 
