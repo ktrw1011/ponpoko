@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from torch._C import float32
 import torch.nn as nn
 
 from .utils import WeightDrop, embedded_dropout
