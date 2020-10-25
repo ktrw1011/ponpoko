@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch._C import float32
 import torch.nn as nn
 
 from .utils import WeightDrop, embedded_dropout
@@ -41,7 +42,7 @@ class RegLSTM(nn.Module):
             self.lstm = WeightDrop(self.lstm, ['weight_hh_l0'], dropout=self.weight_dropout_p)
 
     def set_pretrainend_embedding(self, embed_mat:np.ndarray, freeze:bool=True):
-        self.embed.weight = nn.Parameter(torch.Tensor(embed_mat, dtype=torch.float32))
+        self.embed.weight = nn.Parameter(torch.Tensor(embed_mat).float())
         if freeze:
             self.embed.weight.requires_grad = False
 
