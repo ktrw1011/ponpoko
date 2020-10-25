@@ -20,6 +20,12 @@ def one_param(m):
     "First parameter in `m`"
     return first(m.parameters())
 
+def to_detach(h):
+    if isinstance(h, torch.Tensor):
+        return h.detach()
+    else:
+        return tuple(to_detach(v) for v in h)
+
 def dropout_mask(x:torch.Tensor, sz:Union[List, Tuple], p:float):
     "Return a dropout mask of the same type as `x`, size `sz`, with probability `p` to cancel an element."
     return x.new(*sz).bernoulli_(1-p).div_(1-p)
@@ -77,7 +83,7 @@ class WeightDropout(nn.Module):
         with warnings.catch_warnings():
             #To avoid the warning that comes because the weights aren't flattened.
             warnings.simplefilter("ignore")
-            return self.module.forward(*args)
+            return self.module(*args)
 
     def reset(self):
         for layer in self.layer_names:
@@ -138,7 +144,6 @@ class AWD_LSTM(nn.Module):
         self.hidden_dps = nn.ModuleList([RNNDropout(self.hidden_dropout_p) for _ in range(self.num_layer)])
         
         self.reset()
-        
 
     def _lstm_unit(self, in_dim:int, out_dim:int, bi_dir:bool, weight_p):
         rnn = nn.LSTM(in_dim, out_dim, num_layers=1, bidirectional=bi_dir, batch_first=True)
@@ -173,9 +178,9 @@ class AWD_LSTM(nn.Module):
 
         output = self.input_dp(x if from_embeds else self.embed_dp(x))
         new_hidden = []
-        for l, (rnn,hid_dp) in enumerate(zip(self.rnns, self.hidden_dps)):
+        for l, (rnn, hid_dp) in enumerate(zip(self.rnns, self.hidden_dps)):
             output, new_h = rnn(output, self.hidden[l])
             new_hidden.append(new_h)
             if l != self.num_layer - 1: output = hid_dp(output)
-        self.hidden = new_hidden
+        self.hidden = to_detach(new_hidden)
         return output
