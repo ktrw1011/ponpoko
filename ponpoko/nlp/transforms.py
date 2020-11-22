@@ -185,3 +185,15 @@ class UrlNormalizer(BaseTransformer):
 
     def __call__(self, text: str) -> str:
         return re.sub(self.pattern, self.replace, text)
+
+class MentionNormalizer(BaseTransformer):
+    """
+    ツイッターのメンション(@hogehoge)となる文字を削除する
+    パターン: \@\w\w+\s?
+    """
+    def __init__(self, replace: str=""):
+        self.pattern = MENTION_PATTERN
+        self.replace = replace
+
+    def __call__(self, text):
+         return re.sub(self.pattern, self.replace, text)
