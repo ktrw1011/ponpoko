@@ -1,8 +1,9 @@
 import re
 import string
+import abc
 from typing import List
 
-misspell_dict = {"aren't": "are not", "can't": "can not", "couldn't": "could not",
+MISSPELL_DICT = {"aren't": "are not", "can't": "can not", "couldn't": "could not",
                  "didn't": "did not", "doesn't": "does not", "don't": "do not",
                  "hadn't": "had not", "hasn't": "has not", "haven't": "have not",
                  "he'd": "he would", "he'll": "he will", "he's": "he is",
@@ -21,10 +22,16 @@ misspell_dict = {"aren't": "are not", "can't": "can not", "couldn't": "could not
                  "you'll": "you will", "you're": "you are", "you've": "you have",
                  "'re": " are", "wasn't": "was not", "we'll": " will", "tryin'": "trying"}
 
-class BaseTransformer:
+HASHTAG_PATTERN = r"[#|＃](\w+)"
+MENTION_PATTERN = r"\@\w+:?"
+URL_PATTERN = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)"
+
+
+class BaseTransformer(metaclass=abc.ABCMeta):
     
-    def __call__(self, text:str) -> str:
-        pass
+    @abc.abstractclassmethod
+    def __call__(self, text: str) -> str:
+        raise NotImplementedError
 
 class Compose:
     """
@@ -67,10 +74,10 @@ class RemoveHtmlTag(BaseTransformer):
 
 class ReplaceTypicalMissSpelling(BaseTransformer):
     def __init__(self):
-        self.pattern = re.compile('(%s)' % '|'.join(misspell_dict.keys()))
+        self.pattern = re.compile('(%s)' % '|'.join(MISSPELL_DICT.keys()))
         
     def _replace(self, match):
-        return misspell_dict[match.group(0)]
+        return MISSPELL_DICT[match.group(0)]
 
     def __call__(self, text:str) -> str:
         return self.pattern.sub(self._replace, text)
@@ -152,3 +159,29 @@ class CleanRepeatWords(BaseTransformer):
         text = re.sub(r"(Y|y)(Y|y)(Y|y)+", "y", text)
         text = re.sub(r"(Z|z)(Z|z)(Z|z)+", "zz", text)
         return text
+
+class HashtagNormalizer(BaseTransformer):
+    """
+    ハッシュタグを削除する
+    パターン: [#|＃](\w+)
+        シャープ記号+記号ではない文字マッチ、なので先にURL等の削除することを推奨
+    """
+    def __init__(self, replace: str=""):
+        self.pattern = re.compile(HASHTAG_PATTERN)
+        self.replace = replace
+
+    def __call__(self, text):
+         return re.sub(self.pattern, self.replace, text)
+
+
+class UrlNormalizer(BaseTransformer):
+    """
+    URL文字を削除
+    パターン: https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)
+    """
+    def __init__(self, replace: str=""):
+        self.pattern = re.compile(URL_PATTERN)
+        self.replace = replace
+
+    def __call__(self, text: str) -> str:
+        return re.sub(self.pattern, self.replace, text)
