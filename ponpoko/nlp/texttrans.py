@@ -1,7 +1,7 @@
 import re
 import string
 import abc
-from typing import List
+from typing import Dict, List
 
 MISSPELL_DICT = {"aren't": "are not", "can't": "can not", "couldn't": "could not",
                  "didn't": "did not", "doesn't": "does not", "don't": "do not",
@@ -27,7 +27,7 @@ MENTION_PATTERN = r"\@\w+:?"
 URL_PATTERN = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)"
 
 
-class BaseTransformer(metaclass=abc.ABCMeta):
+class BaseTextTrans(metaclass=abc.ABCMeta):
     
     @abc.abstractclassmethod
     def __call__(self, text: str) -> str:
@@ -35,36 +35,53 @@ class BaseTransformer(metaclass=abc.ABCMeta):
 
 class Compose:
     """
-    各transfomerモジュールのインスタンスをリストで渡せばその順番でテキストの正規化を行う
-    """
-    def __init__(self, transforms: List[BaseTransformer]):
-        self.transforms = transforms
+    TextTransformオブジェクトのリストを引数に取ることで
+    リストの順番に正規化を実行する
 
-    def __call__(self, text):
-        for trans in self.transforms:
+    examples:
+        normalized_text = Compose([
+            SpaceNormalizer(), #スペースを削除
+            NumberNormalizer(), #数字を削除
+        ])(text)
+    """
+    def __init__(self, texttrans: List[BaseTextTrans]):
+        """
+        Args:
+            transform (List[TextTransform]): List of TextTransfrom
+        """
+        self.texttrans = texttrans
+
+    def __call__(self, text: str, verbose:bool=False) -> str:
+        if verbose:
+            print(f"[before normalized]:\t {text}")
+
+        for trans in self.texttrans:
             text = trans(text)
+            if verbose:
+                print(f"[{trans.__class__.__name__}]:\t {text}")
+
         return text
 
     @property
-    def composed(self):
+    def __str__(self):
         names = []
-        for trans in self.transforms:
+        for trans in self.texttrans:
             names.append(trans.__class__.__name__)
 
-        return names
+        return " => ".join(names)
 
-class NoneTrans(BaseTransformer):
+class NoneTrans(BaseTextTrans):
     def __call__(self, text: str) -> str:
         return text
 
-class ReplaceWord(BaseTransformer):
-    def __init__(self, transtable: str.maketrans):
+class ReplaceWord(BaseTextTrans):
+    def __init__(self, transtable: Dict):
         self.transtable = transtable
         
     def __call__(self, text: str) -> str:
         return text.translate(self.transtable)
 
-class RemoveHtmlTag(BaseTransformer):
+class RemoveHtmlTag(BaseTextTrans):
     def __init__(self):
         self.tag_pattern = re.compile(r'<(".*?"|\'.*?\'|[^\'"])*?>')
 
@@ -72,7 +89,7 @@ class RemoveHtmlTag(BaseTransformer):
         text = re.sub(self.tag_pattern, "", text)
         return text
 
-class ReplaceTypicalMissSpelling(BaseTransformer):
+class ReplaceTypicalMissSpelling(BaseTextTrans):
     def __init__(self):
         self.pattern = re.compile('(%s)' % '|'.join(MISSPELL_DICT.keys()))
         
@@ -82,7 +99,7 @@ class ReplaceTypicalMissSpelling(BaseTransformer):
     def __call__(self, text:str) -> str:
         return self.pattern.sub(self._replace, text)
 
-class ReplaceContinuousNumbers(BaseTransformer):
+class ReplaceContinuousNumbers(BaseTextTrans):
     def __init__(self, to_word: str='0'):
         self.pattern = re.compile(r'\d+')
         self.to_word = to_word
@@ -90,7 +107,7 @@ class ReplaceContinuousNumbers(BaseTransformer):
     def __call__(self, text: str) -> str:
         return re.sub(self.pattern, self.to_word, text)
 
-class SpacingPunctuation(BaseTransformer):
+class SpacingPunctuation(BaseTextTrans):
     def __init__(self):
         self.all_punct = list(string.punctuation)
 
@@ -101,11 +118,11 @@ class SpacingPunctuation(BaseTransformer):
                 text = text.replace(punct, f' {punct} ')
         return text.strip()
     
-class TextLower(BaseTransformer):
+class TextLower(BaseTextTrans):
     def __call__(self, text:str) -> str:
         return text.lower()
     
-class TextStrip(BaseTransformer):
+class TextStrip(BaseTextTrans):
     def __init__(self, how:str="both"):
         if not how in ["left" ,"right", "both"]:
             raise ValueError("how is selected in left, right, both")
@@ -119,12 +136,12 @@ class TextStrip(BaseTransformer):
         else:
             return text.strip()
 
-class RemoveEmptyString(BaseTransformer):
+class RemoveEmptyString(BaseTextTrans):
     def __call__(self, text: str) -> str:
         l = [s for s in text.split(' ') if s != '']
         return ' '.join(l)
 
-class CleanNumber(BaseTransformer):
+class CleanNumber(BaseTextTrans):
     """連続する数値を置き換える"""
     def __init__(self, to_word:str=" "):
         self.pattern = re.compile(r'\d+')
@@ -133,7 +150,7 @@ class CleanNumber(BaseTransformer):
     def __call__(self, text: str) -> str:
         return re.sub(self.pattern, self.to_word, text)
 
-class CleanRepeatWords(BaseTransformer):
+class CleanRepeatWords(BaseTextTrans):
 
     def __call__(self, text: str) -> str:
         text = re.sub(r"(I|i)(I|i)+ng", "ing", text)
@@ -160,7 +177,7 @@ class CleanRepeatWords(BaseTransformer):
         text = re.sub(r"(Z|z)(Z|z)(Z|z)+", "zz", text)
         return text
 
-class HashtagNormalizer(BaseTransformer):
+class HashtagNormalizer(BaseTextTrans):
     """
     ハッシュタグを削除する
     パターン: [#|＃](\w+)
@@ -174,7 +191,7 @@ class HashtagNormalizer(BaseTransformer):
          return re.sub(self.pattern, self.replace, text)
 
 
-class UrlNormalizer(BaseTransformer):
+class UrlNormalizer(BaseTextTrans):
     """
     URL文字を削除
     パターン: https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)
@@ -186,7 +203,7 @@ class UrlNormalizer(BaseTransformer):
     def __call__(self, text: str) -> str:
         return re.sub(self.pattern, self.replace, text)
 
-class MentionNormalizer(BaseTransformer):
+class MentionNormalizer(BaseTextTrans):
     """
     ツイッターのメンション(@hogehoge)となる文字を削除する
     パターン: \@\w\w+\s?
